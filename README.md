@@ -20,7 +20,7 @@ Toolbox QGIS untuk simbolisasi otomatis raster **MapBiomas Indonesia** menjadi v
 
 ```
 Map-Biomas-style-QGIS-Toolbox/
-├── mapbiomas_01_raster_to_vector.py   # Script Processing utama
+├── mapbiomas_style_qgis_toolbox.py   # Script Processing utama
 ├── startup.py                         # Script auto-load tombol toolbar
 └── README.md
 ```
