@@ -29,50 +29,21 @@ Map-Biomas-style-QGIS-Toolbox/
 
 ## Instalasi
 
-### 0. Download Toolbox
+Buka menu processing toolbox > pilih logo python >add script to toolbox 
+   <img width="634" height="227" alt="Screenshot 2026-06-06 190217" src="https://github.com/user-attachments/assets/2bfb0210-3deb-4556-9ad8-58eecb2ef6a6" />
+   
+>masukan semua file
+<img width="367" height="481" alt="Screenshot 2026-06-06 190235" src="https://github.com/user-attachments/assets/751cd222-2bfd-4cea-bcf0-07dd480958c8" />
 
-Download semua file dari repository ini:
-
-```
-mapbiomas_01_raster_to_vector.py   ← script utama
-startup.py                         ← tombol toolbar (opsional)
-```
-
-Klik tombol **Code → Download ZIP** di halaman GitHub ini, lalu ekstrak.
-
----
-
-### 1. Script Processing
-
-Salin `mapbiomas_01_raster_to_vector.py` ke folder Scripts Processing QGIS:
-
-| OS | Path |
-|---|---|
-| Windows | `C:\Users\<nama>\AppData\Roaming\QGIS\QGIS3\profiles\default\processing\scripts\` |
-| Linux / macOS | `~/.local/share/QGIS/QGIS3/profiles/default/processing/scripts/` |
-
-Atau buka langsung dari QGIS:
-**Processing Toolbox → Scripts (ikon roda gigi) → Open Scripts Folder**
-
-### 2. Tombol Toolbar (Opsional)
-
-Salin `startup.py` ke folder Python startup QGIS:
-
-| OS | Path |
-|---|---|
-| Windows | `C:\Users\<nama>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\startup.py` |
-| Linux / macOS | `~/.local/share/QGIS/QGIS3/profiles/default/python/startup.py` |
-
-Setelah QGIS dibuka ulang, tombol **MapBiomas ID Style** akan muncul otomatis di toolbar.
-
----
+setelah instalasi selesai maka akan muncul menu di panel atas
 
 ## Cara Pakai
 
-1. Buka QGIS dan muat raster MapBiomas Indonesia
-2. Jalankan tool melalui salah satu cara:
-   - Klik tombol **MapBiomas ID Style** di toolbar, atau
-   - Buka **Processing Toolbox → MapBiomas ID Custom Visualization Toolbox → Simbolisasi Raster MapBiomas**
+
+https://github.com/user-attachments/assets/7d267b43-4b51-413e-911f-1232596b2055
+
+
+MapBiomas**
 3. Isi parameter:
 
 | Parameter | Keterangan |
