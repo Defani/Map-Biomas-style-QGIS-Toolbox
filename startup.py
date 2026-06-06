@@ -1,10 +1,3 @@
-# startup.py — MapBiomas ID Quick Launch Button
-# Letakkan file ini di:
-#   Windows : C:\Users\<nama>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\startup.py
-#   Linux   : ~/.local/share/QGIS/QGIS3\profiles\default\python\startup.py
-#
-# QGIS akan otomatis menjalankan file ini setiap kali dibuka.
-# Tombol "MapBiomas ID Style" akan muncul di toolbar QGIS.
 
 from qgis.PyQt.QtCore import QTimer
 
@@ -15,7 +8,7 @@ def _add_mapbiomas_button():
 
     main_win = iface.mainWindow()
 
-    # --- Guard: hapus tombol lama jika sudah ada sebelum menambah baru ---
+  
     existing = getattr(main_win, '_mapbiomas_btn', None)
     if existing is not None:
         iface.removeToolBarIcon(existing)
@@ -52,7 +45,4 @@ def _add_mapbiomas_button():
     iface.addToolBarIcon(action)
     main_win._mapbiomas_btn = action
 
-# Jalankan sekali saat QGIS selesai load
-# singleShot tidak akan memanggil ulang jika file ini dieksekusi lebih dari sekali
-# karena QTimer bersifat one-shot
 QTimer.singleShot(3000, _add_mapbiomas_button)
