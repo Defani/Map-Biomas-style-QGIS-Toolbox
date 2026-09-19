@@ -6,6 +6,133 @@ Toolbox QGIS untuk simbolisasi otomatis raster **MapBiomas Indonesia** menjadi v
 
 ---
 
+## Sistem Kerja
+
+Toolbox ini adalah tahap **post-processing dan visualisasi**: input berupa raster klasifikasi MapBiomas yang sudah jadi (nilai piksel = kode kelas / `gridcode`), bukan alat klasifikasi citra. Seluruh proses berjalan sebagai satu algoritma QGIS Processing (`MapBiomasRasterToVectorAlgorithm`).
+
+### 1. Alur kerja lengkap
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"background": "transparent"}, "flowchart": {"htmlLabels": true}}, "themeCSS": ".background { fill: none !important; }"}%%
+flowchart TB
+    subgraph INSTALL["0 · Instalasi (sekali saja)"]
+        I1["Processing Toolbox → Add Script to Toolbox<br/>mapbiomas_style_qgis_toolbox.py"]
+        I2["startup.py (opsional)<br/>menambah tombol setelah QGIS terbuka ± 3 detik"]
+        I3["Tombol toolbar<br/>MapBiomas ID Style"]
+        I2 --> I3
+    end
+
+    T["Processing Toolbox<br/>MapBiomas ID Custom Visualization Toolbox<br/>→ Simbolisasi Raster MapBiomas"]
+    I1 --> T
+
+    PARAM["1 · Dialog parameter<br/>INPUT_RASTER: raster MapBiomas (.tif)<br/>BAND: default 1<br/>OUTPUT_VECTOR: default GeoJSON, bisa .gpkg atau .shp<br/>LOAD_TO_CANVAS: default aktif"]
+    T --> PARAM
+    I3 -->|"execAlgorithmDialog"| PARAM
+
+    subgraph PROC["2 · processAlgorithm() — MapBiomasRasterToVectorAlgorithm"]
+        S1["Langkah 1/5 · Polygonize<br/>gdal:polygonize → field gridcode<br/>progres 20"]
+        S2["Langkah 2/5 · Dissolve per kelas<br/>native:dissolve, FIELD = gridcode<br/>GeoPackage sementara, progres 30"]
+        S3["Langkah 3/5 · Tambah field<br/>class_id, class_en, class_id_b,<br/>lv1_en, lv1_id, hex_color<br/>progres 38"]
+        S4["Langkah 4/5 · Isi atribut tiap fitur<br/>lookup gridcode ke MAPBIOMAS_CLASSES<br/>progres 38 sampai 75"]
+        UNK{"gridcode ada di<br/>MAPBIOMAS_CLASSES?"}
+        UN["Unknown / Tidak Diketahui<br/>warna abu-abu + peringatan di log"]
+        S5["Langkah 5/5 · Simpan<br/>native:savefeatures → OUTPUT_VECTOR<br/>progres 92"]
+        S1 --> S2 --> S3 --> S4 --> UNK
+        UNK -->|"ya"| S5
+        UNK -->|"tidak"| UN --> S5
+    end
+
+    PARAM -->|"Run"| S1
+
+    subgraph LOOKUP["Lookup table internal"]
+        C["MAPBIOMAS_CLASSES<br/>gridcode → nama EN/ID, level 1, warna hex"]
+        D["LEGEND_ORDER<br/>urutan kategori di legenda"]
+    end
+    C --> S4
+    C --> SYM
+    D --> SYM
+
+    S5 --> E["3 · Output file<br/>vektor polygon per kelas<br/>+ 7 kolom atribut"]
+    S5 --> LOAD{"LOAD_TO_CANVAS<br/>aktif?"}
+    LOAD -->|"tidak"| STOP["Selesai<br/>hanya file output"]
+    LOAD -->|"ya"| SYM["_apply_symbology()<br/>1. kumpulkan gridcode unik yang ada di data<br/>2. urutkan sesuai LEGEND_ORDER<br/>3. satu QgsRendererCategory per kelas, label = nama kelas<br/>4. QgsCategorizedSymbolRenderer"]
+    SYM --> F["Layer MapBiomas Indonesia LULC Map di kanvas<br/>simbologi + legenda dinamis (hanya kelas yang ada)"]
+```
+
+### 2. Urutan eksekusi
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"background": "transparent"}}, "themeCSS": ".background { fill: none !important; }"}%%
+sequenceDiagram
+    autonumber
+    actor User
+    participant QGIS as QGIS (Toolbox / toolbar)
+    participant Alg as MapBiomasRasterToVectorAlgorithm
+    participant GDAL as gdal:polygonize
+    participant Native as native:dissolve / savefeatures
+    participant Sym as _apply_symbology()
+
+    opt Lewat tombol toolbar (startup.py)
+        User->>QGIS: klik MapBiomas ID Style
+        QGIS->>QGIS: cari algoritma mapbiomas_raster_to_vector, lalu execAlgorithmDialog
+    end
+    User->>QGIS: pilih raster, band, output, opsi kanvas, lalu Run
+    QGIS->>Alg: processAlgorithm(parameters)
+    Alg->>GDAL: polygonize(raster, band, FIELD = gridcode)
+    GDAL-->>Alg: polygon hasil konversi piksel (temporary)
+    Alg->>Native: dissolve(FIELD = gridcode) ke GeoPackage sementara
+    Native-->>Alg: polygon per kelas
+    Alg->>Alg: tambah 6 field (class_id, class_en, class_id_b, lv1_en, lv1_id, hex_color)
+    loop Tiap fitur
+        Alg->>Alg: isi atribut dari MAPBIOMAS_CLASSES (tidak ada: Unknown + warna abu-abu)
+    end
+    Alg->>Native: savefeatures(OUTPUT_VECTOR)
+    Native-->>Alg: file vektor final
+    alt LOAD_TO_CANVAS aktif
+        Alg->>Sym: _apply_symbology(layer)
+        Sym->>Sym: kumpulkan gridcode unik yang ada di data
+        Sym->>Sym: urutkan sesuai LEGEND_ORDER
+        Sym->>Sym: buat kategori warna, label = nama kelas tanpa kode angka
+        Sym-->>Alg: QgsCategorizedSymbolRenderer terpasang
+        Alg->>QGIS: QgsProject.addMapLayer
+    end
+    QGIS-->>User: layer tampil dengan simbologi + legenda dinamis
+```
+
+### 3. Posisi toolbox dalam pipeline MapBiomas
+
+Toolbox berada **di luar** pipeline klasifikasi MapBiomas dan baru bekerja setelah raster final diunduh.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"background": "transparent"}}, "themeCSS": ".background { fill: none !important; }"}%%
+flowchart LR
+    subgraph GEE["Pipeline MapBiomas (Google Earth Engine) — di luar scope toolbox"]
+        M1["Mosaik Landsat"]
+        M2["Feature space"]
+        M3["Klasifikasi<br/>Random Forest + U-Net"]
+        M4["Post-classification<br/>gap fill dan filter spasial, temporal, frekuensi"]
+        M5["Integrasi<br/>tema dasar + lintas tema"]
+        M6["Raster final<br/>gridcode per piksel"]
+        M1 --> M2 --> M3 --> M4 --> M5 --> M6
+    end
+
+    subgraph TOOLKIT["QGIS MapBiomas Toolbox — scope repositori ini"]
+        T1["Input raster .tif"]
+        T2["Polygonize"]
+        T3["Dissolve per kelas"]
+        T4["Isi atribut ATBD"]
+        T5["Simbologi dan legenda"]
+        T6["Vektor siap analisis dan layout peta"]
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6
+    end
+
+    M6 -.->|"file .tif diunduh"| T1
+```
+
+Penjelasan tech stack, struktur kelas, dan fungsi tiap komponen kode ada di [`docs/sistem-kerja-mapbiomas-toolbox.md`](docs/sistem-kerja-mapbiomas-toolbox.md).
+
+---
+
 ## Fitur
 
 - Konversi raster MapBiomas ke vektor polygon secara otomatis (*polygonize*)
